@@ -2,23 +2,15 @@
 #define chip8_hpp
 
 #include <iostream>
+#include <bitset>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 using namespace::std;
 
-// opcodes are 2 bytes
 typedef unsigned short opcode;
-
-
-// registers are 8 bits
 typedef unsigned char reg;
-
-// address space is 0x000 - 0xFFF. Thus we need 2 bytes to represent an address
-// we will use this for index and pc registers
 typedef unsigned short address;
-
-
 typedef unsigned char byte;
 
 /*
@@ -61,36 +53,29 @@ public:
     ~chip8();
     void initialize();
     void emulateCycle();
-
     void test();
-
 private:
+    const static address ROM_START_ADDRESS = 0x200;
+    const static address FONTSET_START_ADDRESS = 0x50;
+    const static int ROM_LENGTH = 3584; // i think...
+    const static int FONTSET_LENGTH = 80;
+    const static byte fontset[FONTSET_LENGTH];
+    const static int MEMORY_SIZE = 4096;
+    const static int NUM_REGISTERS = 16;
+    const static int MAX_STACK_DEPTH = 16;
+    
     opcode currentOpcode;
     byte X;
     byte Y;
     address NNN;
     byte NN;
     byte N;
-
-    const static address ROM_START_ADDRESS = 0x200;
-    const static address FONTSET_START_ADDRESS = 0x50;
-    const static int ROM_LENGTH = 3584; // i think...
-    const static int FONTSET_LENGTH = 80;
-    const static byte fontset[FONTSET_LENGTH];
-
-    const static int MEMORY_SIZE = 4096;
     byte memory[MEMORY_SIZE];
-
-    const static int NUM_REGISTERS = 16;
     reg V[NUM_REGISTERS];
-
     address I;
     address pc;
-
-    const static int MAX_STACK_DEPTH = 16;
     byte stack[MAX_STACK_DEPTH];
     reg sp;
-
     byte key[16];
 
     void loadRom(const char *fileName);

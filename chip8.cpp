@@ -1,5 +1,4 @@
 #include "chip8.hpp"
-#include <bitset>
 
 chip8::chip8() {
     cout << "Hello world" << endl;        
