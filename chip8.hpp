@@ -12,6 +12,7 @@ typedef unsigned short opcode;
 typedef unsigned char reg;
 typedef unsigned short address;
 typedef unsigned char byte;
+typedef unsigned char boolean;
 
 /*
     The chip 8 has 35 opcodes which are all 2 bytes long.
@@ -51,9 +52,8 @@ class chip8 {
 public:
     chip8();
     ~chip8();
-    void initialize();
+    void initialize(const char *fileName);
     void emulateCycle();
-    void test();
 private:
     const static address ROM_START_ADDRESS = 0x200;
     const static address FONTSET_START_ADDRESS = 0x50;
@@ -63,7 +63,9 @@ private:
     const static int MEMORY_SIZE = 4096;
     const static int NUM_REGISTERS = 16;
     const static int MAX_STACK_DEPTH = 16;
-    
+    const static int ROWS = 64;
+    const static int COLS = 32;
+
     opcode currentOpcode;
     byte X;
     byte Y;
@@ -72,11 +74,14 @@ private:
     byte N;
     byte memory[MEMORY_SIZE];
     reg V[NUM_REGISTERS];
+    reg delayTimer;
+    reg soundTimer;
     address I;
     address pc;
     byte stack[MAX_STACK_DEPTH];
     reg sp;
     byte key[16];
+    boolean graphics[ROWS][COLS];
 
     void loadRom(const char *fileName);
     void decodeOpcode(opcode op);

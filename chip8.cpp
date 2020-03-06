@@ -10,7 +10,7 @@ chip8::~chip8() {
 }
 
 
-void chip8::initialize() {
+void chip8::initialize(const char *fileName) {
     // Initialize registers and memory
     pc = ROM_START_ADDRESS;
     I = 0;
@@ -18,41 +18,51 @@ void chip8::initialize() {
     sp = 0;
 
     // Clear display
+    memset(graphics, 0, ROWS * COLS * sizeof(boolean));
+
     // Clear stack
+    memset(stack, 0, MAX_STACK_DEPTH * sizeof(byte));
+
     // Clear registers V0-VF
-    for (int i = 0; i < NUM_REGISTERS; i++) {
-        cout << "HI" << i << endl;
-        V[i] = i;
-    }
+    memset(V, 0, NUM_REGISTERS * sizeof(reg));
 
     // Clear memory
+    memset(memory, 0, MEMORY_SIZE * sizeof(byte));
 
     // Load fontset
-    for (int i = 0; i < FONTSET_LENGTH; i++) {
-        memory[FONTSET_START_ADDRESS + i] = fontset[i];
-    }
+    memcpy(memory + FONTSET_START_ADDRESS, fontset, FONTSET_LENGTH * sizeof(byte));
 
     // Set random seed
     srand(time(NULL));
 
     // Load ROM
-    loadRom("brix.ch8");
+    loadRom(fileName);
 
     // Reset timers
+    delayTimer = 0;
+    soundTimer = 0;
 }
 
 
 void chip8::emulateCycle() {
     // Fetch opcode
     currentOpcode = memory[pc] << 8 | memory[pc + 1];
+    cout << "current opcode: " << hex << currentOpcode << endl;
 
-    cout << hex << currentOpcode << endl;
-
-    // Decode opcode
+    // Decode and execute opcode
     decodeOpcode(currentOpcode);
-    // Execute opcode
 
     // Update timers
+    if (delayTimer > 0) {
+        delayTimer--;
+    }
+
+    if (soundTimer > 0) {
+        if (soundTimer == 1) {
+            cout << "WOW!" << endl;
+        }
+        soundTimer--;
+    }
 }
 
 
@@ -81,91 +91,91 @@ void chip8::decodeOpcode(opcode op) {
         //Ignoring 0NNN. Maybe will implement later if need it...
         switch(op & 0x000F) {
         case 0x0000:
-            cout << "00E0" << endl;
+            execute00E0(op);
         break;
         case 0x000E:
-            cout << "00EE" << endl;
+            execute00EE(op);
         break;
         default:
             cout << "Unrecognized opcode: " << hex << op << endl;
         }
     break;
     case 0x1000:
-        cout << "1NNN" << endl;
+        execute1NNN(op);
     break;
     case 0x2000:
-        cout << "2NNN" << endl;
+        execute2NNN(op);
     break;
     case 0x3000:
-        cout << "3XNN" << endl;
+        execute3XNN(op);
     break;
     case 0x4000:
-        cout << "4XNN" << endl;
+        execute4XNN(op);
     break;
     case 0x5000:
-        cout << "5XY0" << endl;
+        execute5XY0(op);
     break;
     case 0x6000:
-        cout << "6XNN" << endl;
+        execute6XNN(op);
     break;
     case 0x7000:
-        cout << "7XNN" << endl;
+        execute7XNN(op);
     break;
     case 0x8000:
         switch(op & 0x000F) {
         case 0x0000:
-            cout << "8XY0" << endl;
+            execute8XY0(op);
         break;
         case 0x0001:
-            cout << "8XY1" << endl;
+            execute8XY1(op);
         break;
         case 0x0002:
-            cout << "8XY2" << endl;
+            execute8XY2(op);
         break;
         case 0x0003:
-            cout << "8XY3" << endl;
+            execute8XY3(op);
         break;
         case 0x0004:
-            cout << "8XY4" << endl;
+            execute8XY4(op);
         break;
         case 0x0005:
-            cout << "8XY5" << endl;
+            execute8XY5(op);
         break;
         case 0x0006:
-            cout << "8XY6" << endl;
+            execute8XY6(op);
         break;
         case 0x0007:
-            cout << "8XY7" << endl;
+            execute8XY7(op);
         break;
         case 0x000E:
-            cout << "8XYE" << endl;
+            execute8XYE(op);
         break;
         default:
             cout << "Unrecognized opcode: " << hex << op << endl;
         }
     break;
     case 0x9000:
-        cout << "9XY0" << endl;
+        execute9XY0(op);
     break;
     case 0xA000:
-        cout << "ANNN" << endl;
+        executeANNN(op);
     break;
     case 0xB000:
-        cout << "BNNN" << endl;
+        executeBNNN(op);
     break;
     case 0xC000:
-        cout << "CXNN" << endl;
+        executeCXNN(op);
     break;
     case 0xD000:
-        cout << "DXYN" << endl;
+        executeDXYN(op);
     break;
     case 0xE000:
         switch(op & 0x00FF) {
         case 0x009E:
-            cout << "EX9E" << endl;
+            executeEX9E(op);
         break;
         case 0x00A1:
-            cout << "EXA1" << endl;
+            executeEXA1(op);
         default:
             cout << "Unrecognized opcode: " << hex << op << endl;
         }
@@ -173,31 +183,31 @@ void chip8::decodeOpcode(opcode op) {
     case 0xF000:
         switch(op & 0x00FF) {
         case 0x0007:
-            cout << "FX07" << endl;
+            executeFX07(op);
         break;
         case 0x000A:
-            cout << "FX0A" << endl;
+            executeFX0A(op);
         break;
         case 0x0015:
-            cout << "FX15" << endl;
+            executeFX15(op);
         break;
         case 0x0018:
-            cout << "FX18" << endl;
+            executeFX18(op);
         break;
         case 0x001E:
-            cout << "FX1E" << endl;
+            executeFX1E(op);
         break;
         case 0x0029:
-            cout << "FX29" << endl;
+            executeFX29(op);
         break;
         case 0x0033:
-            cout << "FX33" << endl;
+            executeFX33(op);
         break;
         case 0x0055:
-            cout << "FX55" << endl;
+            executeFX55(op);
         break;
         case 0x0065:
-            cout << "FX65" << endl;
+            executeFX65(op);
         break;
         default:
             cout << "Unrecognized opcode: " << hex << op << endl;
@@ -221,24 +231,32 @@ void chip8::setOpcodeFields(opcode op) {
 void chip8::execute00E0(opcode op) {
     cout << "00E0" << endl;
     /* Clears the screen */
+    
+    pc += 2;
 }
 
 
 void chip8::execute00EE(opcode op) {
     cout << "00EE" << endl;
     /* Returns from the subroutine */
+    sp--;
+    pc = stack[sp];
 }
 
 
 void chip8::execute1NNN(opcode op) {
     cout << "1NNN" << endl;
     /* Jumps to address NNN */
+    pc = op & 0x0FFF;
 }
 
 
 void chip8::execute2NNN(opcode op) {
     cout << "2NNN" << endl;
     /* Calls subroutine at NNN */
+    stack[sp] = pc;
+    sp++;
+    pc = op & 0x0FFF;
 }
 
 
@@ -248,6 +266,8 @@ void chip8::execute3XNN(opcode op) {
     
     if (V[X] == NN) {
         pc += 4;
+    } else {
+        pc += 2;
     }
 }
 
@@ -258,6 +278,8 @@ void chip8::execute4XNN(opcode op) {
     
     if (V[X] != NN) {
         pc += 4;
+    } else {
+        pc += 2;
     }
 }
 
@@ -268,6 +290,8 @@ void chip8::execute5XY0(opcode op) {
 
     if (V[X] == V[Y]) {
         pc += 4;
+    } else {
+        pc += 2;
     }
 }
 
@@ -277,12 +301,16 @@ void chip8::execute6XNN(opcode op) {
     /* Sets VX to NN */
 
     V[X] = NN;
+    pc += 2;
 }
 
 
 void chip8::execute7XNN(opcode op) {
     cout << "7XNN" << endl;
     /* Adds NN to VX (Carry flag is not changed) */
+    
+    V[X] += NN;
+    pc += 2;
 }
 
 
@@ -290,6 +318,7 @@ void chip8::execute8XY0(opcode op) {
     cout << "8XY0" << endl;
     /* Sets VX to the value of VY */
     V[X] = V[Y];
+    pc += 2;
 }
 
 
@@ -297,6 +326,7 @@ void chip8::execute8XY1(opcode op) {
     cout << "8XY1" << endl;
     /* Sets VX to VX | VY */
     V[X] = V[X] | V[Y];
+    pc += 2;
 }
 
 
@@ -304,6 +334,7 @@ void chip8::execute8XY2(opcode op) {
     cout << "8XY2" << endl;
     /* Sets VX to VX & VY */
     V[X] = V[X] & V[Y];
+    pc += 2;
 }
 
 
@@ -311,6 +342,7 @@ void chip8::execute8XY3(opcode op) {
     cout << "8XY3" << endl;
     /* Sets VX to VX ^ VY */
     V[X] = V[X] ^ V[Y];
+    pc += 2;
 }
 
 
@@ -323,6 +355,7 @@ void chip8::execute8XY4(opcode op) {
         V[0xF] = 0;
     }
     V[X] += V[Y];
+    pc += 2;
 }
 
 
@@ -335,6 +368,7 @@ void chip8::execute8XY5(opcode op) {
         V[0xF] = 1;
     }
     V[X] -= V[Y];
+    pc += 2;
 }
 
 
@@ -343,6 +377,7 @@ void chip8::execute8XY6(opcode op) {
     /* Stores the least significant bit of VX in VF and then shifts VX to the right by 1 */
     V[0xF] = V[X] & 0x0001;
     V[X] >>= 1;
+    pc += 2;
 }
 
 
@@ -355,6 +390,7 @@ void chip8::execute8XY7(opcode op) {
         V[0xF] = 1;
     }
     V[X] = V[Y] - V[X];
+    pc += 2;
 }
 
 
@@ -363,6 +399,7 @@ void chip8::execute8XYE(opcode op) {
     /* Stores the most significant bit of VX in VF and then shifts VX to the left by 1 */
     V[0xF] = (V[X] & 0x8000) >> 31;
     V[X] <<= 1;
+    pc += 2;
 }
 
 
@@ -371,6 +408,8 @@ void chip8::execute9XY0(opcode op) {
     /* Skips the next instruction if VX doesn't equal VY */
     if (V[X] != V[Y]) {
         pc += 4;
+    } else {
+        pc += 2;
     }
 }
 
@@ -379,6 +418,7 @@ void chip8::executeANNN(opcode op) {
     cout << "ANNN" << endl;
     /* Sets I to the address NNN */
     I = NNN;
+    pc += 2;
 }
 
 
@@ -393,48 +433,62 @@ void chip8::executeCXNN(opcode op) {
     cout << "CXNN" << endl;
     /* Sets VX to the result of a bitwise and operation on a random number and NN */
     V[X] = (rand() % 0xFF) & NN;
+    pc += 2;
 }
 
 
 void chip8::executeDXYN(opcode op) {
     cout << "DXYN" << endl;
     /* Draws a sprite ... */
+    pc += 2;
 }
 
 
 void chip8::executeEX9E(opcode op) {
     cout << "EX9E" << endl;
     /* Skips the next instruction if the key stored in VX is pressed */
+    pc += 2;
 }
 
 
 void chip8::executeEXA1(opcode op) {
     cout << "EXA1" << endl;
-    /* Skips the next instructino if the key stored in VX isn't pressed */
+    /* Skips the next instruction if the key stored in VX isn't pressed */
+    pc += 2;
 }
 
 
 void chip8::executeFX07(opcode op) {
     cout << "FX07" << endl;
     /* Sets VX to the value of the delay timer */
+    
+    V[X] = delayTimer;
+    pc += 2;
 }
 
 
 void chip8::executeFX0A(opcode op) {
     cout << "FX0A" << endl;
     /* A key press is awaited, and then stored in VX. (Blocking operation) */
+    pc += 2;
 }
 
 
 void chip8::executeFX15(opcode op) {
     cout << "FX15" << endl;
     /* Sets the delay timer to VX */
+    
+    delayTimer = V[X];
+    pc += 2;
 }
 
 
 void chip8::executeFX18(opcode op) {
     cout << "FX18" << endl;
     /* Sets the sound timer to VX */
+
+    soundTimer = V[X];
+    pc += 2;
 }
 
 
@@ -448,12 +502,14 @@ void chip8::executeFX1E(opcode op) {
         V[0xF] = 0;
     }
     I += V[X];
+    pc += 2;
 }
 
 
 void chip8::executeFX29(opcode op) {
     cout << "FX29" << endl;
     /* Sets I to the location of the sprite for the character in VX. */
+    pc += 2;
 }
 
 
@@ -465,6 +521,7 @@ void chip8::executeFX33(opcode op) {
     memory[I] = V[X] / 100;
     memory[I + 1] = (V[X] / 10) % 10;
     memory[I + 2] = V[X] % 10;
+    pc += 2;
 }
 
 
@@ -476,6 +533,7 @@ void chip8::executeFX55(opcode op) {
     for (int i = 0; i <= X; i++) {
         memory[I + i] = V[i];
     }
+    pc += 2;
 }
 
 
@@ -487,11 +545,7 @@ void chip8::executeFX65(opcode op) {
     for (int i = 0; i <= X; i++) {
         V[i] = memory[I + i];
     }
-}
-
-
-void chip8::test() {
-    execute5XY0(0x5EF0);
+    pc += 2;
 }
 
 

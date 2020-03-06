@@ -3,9 +3,10 @@
 using namespace::std;
 
 int main() {
-    cout << "hello from main" << endl;
-    chip8 test;
-    test.initialize();
-    test.test();
-    //test.emulateCycle();
+    chip8 c8;
+    c8.initialize("brix.ch8");
+
+    while (true) {
+        c8.emulateCycle();        
+    }
 }
